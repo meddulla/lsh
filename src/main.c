@@ -136,6 +136,9 @@ int lsh_execute(char **args)
     // An empty command was entered.
     return 1;
   }
+  if (strcmp(args[0], "exit") == 0) {
+    return 0;
+  }
 
   for (i = 0; i < lsh_num_builtins(); i++) {
     if (strcmp(args[0], builtin_str[i]) == 0) {
@@ -167,8 +170,13 @@ char *lsh_read_line(void)
     // Read a character
     c = getchar();
 
-    // If we hit EOF, replace it with a null character and return.
-    if (c == EOF || c == '\n') {
+    // Exit on ctrl+d
+    if (c == EOF) {
+        exit(EXIT_FAILURE);
+    }
+
+    // If we hit a new line, replace it with a null character and return.
+    if (c == '\n') {
       buffer[position] = '\0';
       return buffer;
     } else {
