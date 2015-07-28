@@ -15,6 +15,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/param.h>
+
+static const int MAX_HISTORY = 3;
 
 /*
   Function Declarations for builtin shell commands:
@@ -22,6 +25,7 @@
 int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
+int lsh_history();
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -29,17 +33,34 @@ int lsh_exit(char **args);
 char *builtin_str[] = {
   "cd",
   "help",
-  "exit"
+  "exit",
+  "history"
 };
+
+char *history[MAX_HISTORY];
+int history_pos = 0;
 
 int (*builtin_func[]) (char **) = {
   &lsh_cd,
   &lsh_help,
-  &lsh_exit
+  &lsh_exit,
+  &lsh_history
 };
 
 int lsh_num_builtins() {
   return sizeof(builtin_str) / sizeof(char *);
+}
+int lsh_num_history() {
+  return sizeof(history) / sizeof(char *);
+}
+
+void history_save(char item[])
+{
+    int i = history_pos % MAX_HISTORY;
+    history[i] = NULL;
+    history[i] = item;
+    printf("saving to hist at pos %d i %d\n", history_pos, i);
+    history_pos++;
 }
 
 /*
@@ -59,6 +80,33 @@ int lsh_cd(char **args)
     if (chdir(args[1]) != 0) {
       perror("lsh");
     }
+  }
+  return 1;
+}
+
+int lsh_history()
+{
+  int i, pos;
+  int n = 0;
+  int t = lsh_num_history();
+  if (history_pos > MAX_HISTORY) {
+    pos = history_pos % MAX_HISTORY;
+  } else {
+    pos = 0;
+  }
+  i = pos;
+  while (1) {
+    if (n >= t) {
+        return 1;
+    }
+    i = pos % MAX_HISTORY;
+    if (history[i]) {
+        printf("pos %d i %d\n", pos, i);
+        printf("%s\n", history[i]);
+    }
+    pos++;
+    n++;
+
   }
   return 1;
 }
@@ -251,6 +299,10 @@ void lsh_loop(void)
     args = lsh_split_line(line);
     status = lsh_execute(args);
 
+    if(strncmp(args[0], "history", sizeof(*args[0])) != 0) {
+        // no need to save history in history
+        history_save(*args);
+    }
     free(line);
     free(args);
   } while (status);
